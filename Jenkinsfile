@@ -14,7 +14,7 @@ pipeline {
             target: '*',
             targettype: 'glob'
           ),
-          credentialsId: 'jenkins',
+          credentialsId: 'git-jenkins-salt',
           saveFile: true,
           servername: 'http://34.148.114.59:8000'
         )
@@ -37,7 +37,7 @@ pipeline {
             target: '*',
             targettype: 'glob'
           ),
-          credentialsId: 'jenkins',
+          credentialsId: 'git-jenkins-salt',
           saveFile: true,
           servername: 'http://34.148.114.59:8000'
         )
