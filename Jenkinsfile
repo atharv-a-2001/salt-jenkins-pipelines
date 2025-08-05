@@ -1,30 +1,51 @@
 pipeline {
-    agent any
+  agent any
 
-    stages {
-        stage('Clone SLS Repo') {
-            steps {
-                git 'https://github.com/atharv-a-2001/saltstack-files.git'
-            }
-        }
+  environment {
+    SLS_REPO = 'https://github.com/atharv-a-2001/saltstack-files.git'
+    SALT_MASTER = 'http://34.148.114.59:8000'
+  }
 
-        stage('Copy SLS to Salt Master') {
-            steps {
-                sh 'cp nginx-jenkins.sls /srv/salt/'
-                sh 'cp nginx-start-jenkins.sls /srv/salt/'
-            }
-        }
-
-        stage('Install Nginx') {
-            steps {
-                sh "salt '*' state.apply nginx-jenkins"
-            }
-        }
-
-        stage('Start Nginx') {
-            steps {
-                sh "salt '*' state.apply nginx-start-jenkins"
-            }
-        }
+  stages {
+    stage('Clone SLS Files') {
+      steps {
+        sh 'git clone ${SLS_REPO} sls-files'
+      }
     }
+
+    stage('Copy to Salt Master') {
+      steps {
+        sh 'cp sls-files/*.sls /srv/salt/'
+      }
+    }
+
+    stage('Install Nginx') {
+      steps {
+        salt(
+          authtype: 'pam',
+          clientInterface: local(
+            function: 'state.apply',
+            arguments: 'nginx-jenkins',
+            blockbuild: true,
+            target: '*',
+            targettype: 'glob'
+          ),
+          credentialsId: 'jenkins',
+          saveFile: true,
+          servername: "${SALT_MASTER}"
+        )
+
+        script {
+          def output = readFile("${env.WORKSPACE}/saltOutput.json")
+          echo output
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      cleanWs()
+    }
+  }
 }
