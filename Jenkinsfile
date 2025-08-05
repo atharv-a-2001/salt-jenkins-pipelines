@@ -6,7 +6,6 @@ pipeline {
     SALT_CREDENTIALS = 'git-jenkins-salt'
     SALT_MINION = 'windowsminion'
     SLS_FILE = 'nginx-jenkins'
-    OUTPUT_FILE = "${env.WORKSPACE}/saltOutput.json"
   }
 
   stages {
@@ -15,8 +14,8 @@ pipeline {
         salt(
           authtype: 'pam',
           clientInterface: runner(function: 'fileserver.update'),
-          credentialsId: "${env.SALT_CREDENTIALS}",
-          servername: "${env.SALT_API}"
+          credentialsId: SALT_CREDENTIALS,
+          servername: SALT_API
         )
       }
     }
@@ -26,28 +25,13 @@ pipeline {
         salt(
           authtype: 'pam',
           clientInterface: local(
-            arguments: [env.SLS_FILE],
+            arguments: [SLS_FILE],
             function: 'state.apply',
-            target: env.SALT_MINION
+            target: SALT_MINION
           ),
-          credentialsId: "${env.SALT_CREDENTIALS}",
-          servername: "${env.SALT_API}",
-          saveFile: true,
-          fileName: env.OUTPUT_FILE
+          credentialsId: SALT_CREDENTIALS,
+          servername: SALT_API
         )
-      }
-    }
-
-    stage('Check Salt Output') {
-      steps {
-        script {
-          if (fileExists(env.OUTPUT_FILE)) {
-            def output = readFile(env.OUTPUT_FILE)
-            echo output
-          } else {
-            echo "Salt output file not found"
-          }
-        }
       }
     }
 
@@ -58,10 +42,10 @@ pipeline {
           clientInterface: local(
             arguments: ['nginx'],
             function: 'service.start',
-            target: env.SALT_MINION
+            target: SALT_MINION
           ),
-          credentialsId: "${env.SALT_CREDENTIALS}",
-          servername: "${env.SALT_API}"
+          credentialsId: SALT_CREDENTIALS,
+          servername: SALT_API
         )
       }
     }
