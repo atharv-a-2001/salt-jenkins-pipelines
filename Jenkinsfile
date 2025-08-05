@@ -54,7 +54,7 @@ pipeline {
           ),
           credentialsId: 'git-jenkins-salt',
           saveFile: true,
-          servername: 'http://34.148.114.59:8000"
+          servername: 'http://34.148.114.59:8000'
         )
 
         script {
