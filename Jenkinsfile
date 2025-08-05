@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        SALT_API = 'http://34.148.114.59:8000'  
+        SALT_API = 'http://34.148.114.59:8000' 
     }
 
     stages {
@@ -13,8 +13,8 @@ pipeline {
                          credentialsId: 'git-jenkins-salt',
                          servername: "${env.SALT_API}",
                          clientInterface: runner(
-                             function: 'fileserver.update',
-                             arguments: '' 
+                             function: 'fileserver.update'
+                            
                          )
                 }
             }
