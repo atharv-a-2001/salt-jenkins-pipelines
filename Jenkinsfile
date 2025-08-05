@@ -1,17 +1,22 @@
 pipeline {
   agent any
 
+  environment {
+    SALT_API = 'http://34.148.114.59:8000'
+    SALT_CREDENTIALS = 'git-jenkins-salt'
+    SALT_MINION = 'windowsminion'
+    SLS_FILE = 'nginx-jenkins'
+    OUTPUT_FILE = "${env.WORKSPACE}/saltOutput.json"
+  }
+
   stages {
     stage('Update GitFS Cache') {
       steps {
         salt(
           authtype: 'pam',
-          clientInterface: runner(
-            function: 'fileserver.update',
-            arguments: ''
-          ),
-          credentialsId: 'git-jenkins-salt',
-          servername: 'http://34.148.114.59:8000'
+          clientInterface: runner(function: 'fileserver.update'),
+          credentialsId: "${env.SALT_CREDENTIALS}",
+          servername: "${env.SALT_API}"
         )
       }
     }
@@ -21,21 +26,27 @@ pipeline {
         salt(
           authtype: 'pam',
           clientInterface: local(
+            arguments: [env.SLS_FILE],
             function: 'state.apply',
-            arguments: 'nginx_jenkins',
-            blockbuild: true,
-            jobPollTime: 6,
-            target: '*',
-            targettype: 'glob'
+            target: env.SALT_MINION
           ),
-          credentialsId: 'git-jenkins-salt',
+          credentialsId: "${env.SALT_CREDENTIALS}",
+          servername: "${env.SALT_API}",
           saveFile: true,
-          servername: 'http://34.148.114.59:8000'
+          fileName: env.OUTPUT_FILE
         )
+      }
+    }
 
+    stage('Check Salt Output') {
+      steps {
         script {
-          def output = readFile "${env.WORKSPACE}/saltOutput.json"
-          echo output
+          if (fileExists(env.OUTPUT_FILE)) {
+            def output = readFile(env.OUTPUT_FILE)
+            echo output
+          } else {
+            echo "Salt output file not found"
+          }
         }
       }
     }
@@ -45,22 +56,13 @@ pipeline {
         salt(
           authtype: 'pam',
           clientInterface: local(
-            function: 'state.apply',
-            arguments: 'nginx_start_jenkins',
-            blockbuild: true,
-            jobPollTime: 6,
-            target: '*',
-            targettype: 'glob'
+            arguments: ['nginx'],
+            function: 'service.start',
+            target: env.SALT_MINION
           ),
-          credentialsId: 'git-jenkins-salt',
-          saveFile: true,
-          servername: 'http://34.148.114.59:8000'
+          credentialsId: "${env.SALT_CREDENTIALS}",
+          servername: "${env.SALT_API}"
         )
-
-        script {
-          def output = readFile "${env.WORKSPACE}/saltOutput.json"
-          echo output
-        }
       }
     }
   }
