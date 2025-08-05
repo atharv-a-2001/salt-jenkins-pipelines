@@ -2,6 +2,19 @@ pipeline {
   agent any
 
   stages {
+    stage('Update GitFS Cache') {
+      steps {
+        salt(
+          authtype: 'pam',
+          clientInterface: runner(
+            function: 'fileserver.update'
+          ),
+          credentialsId: 'git-jenkins-salt',
+          servername: 'http://34.148.114.59:8000'
+        )
+      }
+    }
+
     stage('Install Nginx') {
       steps {
         salt(
@@ -25,6 +38,7 @@ pipeline {
         }
       }
     }
+
     stage('Start nginx') {
       steps {
         salt(
@@ -56,3 +70,4 @@ pipeline {
     }
   }
 }
+
