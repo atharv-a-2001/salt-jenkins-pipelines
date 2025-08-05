@@ -1,45 +1,59 @@
 pipeline {
-    agent any
+  agent any
 
-    environment {
-        SALT_MASTER_IP = "34.148.114.59"
-        SALT_MINION_ID = "saltmaster.us-east1-d.c.piby3-finops.internal"
+  stages {
+    stage('Install Nginx') {
+      steps {
+        salt(
+          authtype: 'pam',
+          clientInterface: local(
+            function: 'state.apply',
+            arguments: 'nginx_jenkins',
+            blockbuild: true,
+            jobPollTime: 6,
+            target: '*',
+            targettype: 'glob'
+          ),
+          credentialsId: 'jenkins',
+          saveFile: true,
+          servername: 'http://34.148.114.59:8000'
+        )
+
+        script {
+          def output = readFile "${env.WORKSPACE}/saltOutput.json"
+          echo output
+        }
+      }
     }
 
-    stages {
-        stage('Clone SLS Files') {
-            steps {
-                echo "Cloning SLS repo from GitHub..."
-                sh 'git clone https://github.com/atharv-a-2001/saltstack-files.git sls-files'
-            }
-        }
+    stage('Start nginx') {
+      steps {
+        salt(
+          authtype: 'pam',
+          clientInterface: local(
+            function: 'state.apply',
+            arguments: 'nginx_start_jenkins',
+            blockbuild: true,
+            jobPollTime: 6,
+            target: '*',
+            targettype: 'glob'
+          ),
+          credentialsId: 'jenkins',
+          saveFile: true,
+          servername: 'http://34.148.114.59:8000'
+        )
 
-        stage('Copy to Salt Master') {
-            steps {
-                echo "Copying SLS files to /srv/salt..."
-                sh 'sudo cp sls-files/*.sls /srv/salt/'
-            }
+        script {
+          def output = readFile "${env.WORKSPACE}/saltOutput.json"
+          echo output
         }
-
-        stage('Install Nginx') {
-            steps {
-                echo "Applying nginx-jenkins state on minion..."
-                sh 'sudo salt $SALT_MINION_ID state.apply nginx-jenkins'
-            }
-        }
-
-        stage('Start Nginx') {
-            steps {
-                echo "Applying nginx-start-jenkins state on minion..."
-                sh 'sudo salt $SALT_MINION_ID state.apply nginx-start-jenkins'
-            }
-        }
+      }
     }
+  }
 
-    post {
-        always {
-            echo "Cleaning up workspace..."
-            cleanWs()
-        }
+  post {
+    always {
+      cleanWs()
     }
+  }
 }
