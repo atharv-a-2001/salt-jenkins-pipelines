@@ -1,69 +1,64 @@
 pipeline {
   agent any
 
-  environment {
-    SALT_API = 'http://34.148.114.59:8000'
-  }
-
   stages {
     stage('Update GitFS Cache') {
       steps {
-        script {
-          salt(
-            authtype: 'pam',
-            credentialsId: 'git-jenkins-salt',
-            servername: "${env.SALT_API}",
-            clientInterface: runner(
-              function: 'fileserver.update'
-            )
-          )
-        }
+        salt(
+          authtype: 'pam',
+          clientInterface: runner(
+            function: 'fileserver.update',
+            arguments: ''
+          ),
+          credentialsId: 'git-jenkins-salt',
+          servername: 'http://34.148.114.59:8000'
+        )
       }
     }
 
     stage('Install Nginx') {
       steps {
-        script {
-          salt(
-            authtype: 'pam',
-            credentialsId: 'git-jenkins-salt',
-            servername: "${env.SALT_API}",
-            clientInterface: local(
-              function: 'state.apply',
-              arguments: 'nginx_jenkins',
-              blockbuild: true,
-              jobPollTime: 6,
-              target: '*',
-              targettype: 'glob'
-            ),
-            saveFile: true
-          )
+        salt(
+          authtype: 'pam',
+          clientInterface: local(
+            function: 'state.apply',
+            arguments: 'nginx_jenkins',
+            blockbuild: true,
+            jobPollTime: 6,
+            target: '*',
+            targettype: 'glob'
+          ),
+          credentialsId: 'git-jenkins-salt',
+          saveFile: true,
+          servername: 'http://34.148.114.59:8000'
+        )
 
-          def output = readFile("${env.WORKSPACE}/saltOutput.json")
+        script {
+          def output = readFile "${env.WORKSPACE}/saltOutput.json"
           echo output
         }
       }
     }
 
-    stage('Start Nginx') {
+    stage('Start nginx') {
       steps {
-        script {
-          salt(
-            authtype: 'pam',
-            credentialsId: 'git-jenkins-salt',
-            servername: "${env.SALT_API}",
-            clientInterface: local(
-              function: 'state.apply',
-              arguments: 'nginx_start_jenkins',
-              blockbuild: true,
-              jobPollTime: 6,
-              target: '*',
-              targettype: 'glob'
-            ),
-            saveFile: true
-          )
+        salt(
+          authtype: 'pam',
+          clientInterface: local(
+            function: 'state.apply',
+            arguments: 'nginx_start_jenkins',
+            blockbuild: true,
+            jobPollTime: 6,
+            target: '*',
+            targettype: 'glob'
+          ),
+          credentialsId: 'git-jenkins-salt',
+          saveFile: true,
+          servername: 'http://34.148.114.59:8000"
+        )
 
-          def output = readFile("${env.WORKSPACE}/saltOutput.json")
+        script {
+          def output = readFile "${env.WORKSPACE}/saltOutput.json"
           echo output
         }
       }
