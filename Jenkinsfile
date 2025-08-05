@@ -1,51 +1,45 @@
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    SLS_REPO = 'https://github.com/atharv-a-2001/saltstack-files.git'
-    SALT_MASTER = 'http://34.148.114.59:8000'
-  }
-
-  stages {
-    stage('Clone SLS Files') {
-      steps {
-        sh 'git clone ${SLS_REPO} sls-files'
-      }
+    environment {
+        SALT_MASTER_IP = "34.148.114.59"
+        SALT_MINION_ID = "saltmaster.us-east1-d.c.piby3-finops.internal"
     }
 
-    stage('Copy to Salt Master') {
-      steps {
-        sh 'cp sls-files/*.sls /srv/salt/'
-      }
-    }
-
-    stage('Install Nginx') {
-      steps {
-        salt(
-          authtype: 'pam',
-          clientInterface: local(
-            function: 'state.apply',
-            arguments: 'nginx-jenkins',
-            blockbuild: true,
-            target: '*',
-            targettype: 'glob'
-          ),
-          credentialsId: 'jenkins',
-          saveFile: true,
-          servername: "${SALT_MASTER}"
-        )
-
-        script {
-          def output = readFile("${env.WORKSPACE}/saltOutput.json")
-          echo output
+    stages {
+        stage('Clone SLS Files') {
+            steps {
+                echo "Cloning SLS repo from GitHub..."
+                sh 'git clone https://github.com/atharv-a-2001/saltstack-files.git sls-files'
+            }
         }
-      }
-    }
-  }
 
-  post {
-    always {
-      cleanWs()
+        stage('Copy to Salt Master') {
+            steps {
+                echo "Copying SLS files to /srv/salt..."
+                sh 'sudo cp sls-files/*.sls /srv/salt/'
+            }
+        }
+
+        stage('Install Nginx') {
+            steps {
+                echo "Applying nginx-jenkins state on minion..."
+                sh 'sudo salt $SALT_MINION_ID state.apply nginx-jenkins'
+            }
+        }
+
+        stage('Start Nginx') {
+            steps {
+                echo "Applying nginx-start-jenkins state on minion..."
+                sh 'sudo salt $SALT_MINION_ID state.apply nginx-start-jenkins'
+            }
+        }
     }
-  }
+
+    post {
+        always {
+            echo "Cleaning up workspace..."
+            cleanWs()
+        }
+    }
 }
