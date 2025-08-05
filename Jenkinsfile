@@ -1,40 +1,35 @@
 pipeline {
     agent any
+
     environment {
         SALT_API_URL = 'http://34.148.114.59:8000'
     }
 
     stages {
-        stage('Update GitFS Cache') {
+        stage('Install Nginx via Salt') {
             steps {
-                saltRunner(
+                salt(
+                    authtype: 'basic',
+                    clientInterface: 'local',
                     credentialsId: 'git-jenkins-salt',
-                    servername: "${env.SALT_API_URL}",
-                    function: 'saltutil.sync_all'
-                )
-            }
-        }
-
-        stage('Install Nginx') {
-            steps {
-                saltCommand(
-                    credentialsId: 'git-jenkins-salt',
-                    servername: "${env.SALT_API_URL}",
                     function: 'state.apply',
-                    target: '*',
-                    arguments: 'nginx-jenkins'
+                    target: 'saltmaster.us-east1-d.c.piby3-finops.internal',
+                    arguments: 'nginx_jenkins',
+                    servername: "${env.SALT_API_URL}"
                 )
             }
         }
 
-        stage('Start nginx') {
+        stage('Start Nginx via Salt') {
             steps {
-                saltCommand(
+                salt(
+                    authtype: 'basic',
+                    clientInterface: 'local',
                     credentialsId: 'git-jenkins-salt',
-                    servername: "${env.SALT_API_URL}",
-                    function: 'service.start',
-                    target: '*',
-                    arguments: 'nginx'
+                    function: 'state.apply',
+                    target: 'saltmaster.us-east1-d.c.piby3-finops.internal',
+                    arguments: 'nginx_start_jenkins',
+                    servername: "${env.SALT_API_URL}"
                 )
             }
         }
@@ -46,3 +41,4 @@ pipeline {
         }
     }
 }
+
