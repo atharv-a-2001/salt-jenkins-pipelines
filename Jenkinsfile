@@ -25,7 +25,6 @@ pipeline {
         }
       }
     }
-
     stage('Start nginx') {
       steps {
         salt(
