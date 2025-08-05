@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        SALT_API = 'http://34.148.114.59:8000'  // Replace with your Salt API endpoint
+        SALT_API = 'http://34.148.114.59:8000'  
     }
 
     stages {
@@ -14,7 +14,7 @@ pipeline {
                          servername: "${env.SALT_API}",
                          clientInterface: runner(
                              function: 'fileserver.update',
-                             arguments: '' // MUST be empty string, NOT []
+                             arguments: '' 
                          )
                 }
             }
