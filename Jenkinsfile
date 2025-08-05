@@ -1,59 +1,48 @@
 pipeline {
-  agent any
-
-  environment {
-    SALT_API = 'http://34.148.114.59:8000'
-    SALT_CREDENTIALS = 'git-jenkins-salt'
-    SALT_MINION = 'windowsminion'
-    SLS_FILE = 'nginx-jenkins'
-  }
-
-  stages {
-    stage('Update GitFS Cache') {
-      steps {
-        salt(
-          authtype: 'pam',
-          clientInterface: runner(function: 'fileserver.update'),
-          credentialsId: SALT_CREDENTIALS,
-          servername: SALT_API
-        )
-      }
+    agent any
+    environment {
+        SALT_API_URL = 'http://34.148.114.59:8000'
     }
 
-    stage('Install Nginx') {
-      steps {
-        salt(
-          authtype: 'pam',
-          clientInterface: local(
-            arguments: [SLS_FILE],
-            function: 'state.apply',
-            target: SALT_MINION
-          ),
-          credentialsId: SALT_CREDENTIALS,
-          servername: SALT_API
-        )
-      }
+    stages {
+        stage('Update GitFS Cache') {
+            steps {
+                salt authtype: 'basic',
+                     clientInterface: 'runner',
+                     credentialsId: 'jenkins',   // Jenkins credentials ID
+                     function: 'saltutil.sync_all',
+                     servername: "${env.SALT_API_URL}"
+            }
+        }
+
+        stage('Install Nginx') {
+            steps {
+                salt authtype: 'basic',
+                     clientInterface: 'local',
+                     credentialsId: 'jenkins',
+                     function: 'state.apply',
+                     target: '*',
+                     fileName: 'nginx-jenkins',   // Your .sls file in repo
+                     servername: "${env.SALT_API_URL}"
+            }
+        }
+
+        stage('Start nginx') {
+            steps {
+                salt authtype: 'basic',
+                     clientInterface: 'local',
+                     credentialsId: 'jenkins',
+                     function: 'service.start',
+                     target: '*',
+                     arguments: 'nginx',
+                     servername: "${env.SALT_API_URL}"
+            }
+        }
     }
 
-    stage('Start nginx') {
-      steps {
-        salt(
-          authtype: 'pam',
-          clientInterface: local(
-            arguments: ['nginx'],
-            function: 'service.start',
-            target: SALT_MINION
-          ),
-          credentialsId: SALT_CREDENTIALS,
-          servername: SALT_API
-        )
-      }
+    post {
+        always {
+            cleanWs()
+        }
     }
-  }
-
-  post {
-    always {
-      cleanWs()
-    }
-  }
 }
