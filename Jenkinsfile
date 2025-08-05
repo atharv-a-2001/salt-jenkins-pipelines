@@ -7,7 +7,8 @@ pipeline {
         salt(
           authtype: 'pam',
           clientInterface: runner(
-            function: 'fileserver.update'
+            function: 'fileserver.update',
+            arguments: [] 
           ),
           credentialsId: 'git-jenkins-salt',
           servername: 'http://34.148.114.59:8000'
