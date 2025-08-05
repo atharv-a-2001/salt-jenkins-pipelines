@@ -7,35 +7,35 @@ pipeline {
     stages {
         stage('Update GitFS Cache') {
             steps {
-                salt authtype: 'basic',
-                     clientInterface: 'runner',
-                     credentialsId: 'jenkins',   // Jenkins credentials ID
-                     function: 'saltutil.sync_all',
-                     servername: "${env.SALT_API_URL}"
+                saltRunner(
+                    credentialsId: 'git-jenkins-salt',
+                    servername: "${env.SALT_API_URL}",
+                    function: 'saltutil.sync_all'
+                )
             }
         }
 
         stage('Install Nginx') {
             steps {
-                salt authtype: 'basic',
-                     clientInterface: 'local',
-                     credentialsId: 'jenkins',
-                     function: 'state.apply',
-                     target: '*',
-                     fileName: 'nginx-jenkins',   // Your .sls file in repo
-                     servername: "${env.SALT_API_URL}"
+                saltCommand(
+                    credentialsId: 'git-jenkins-salt',
+                    servername: "${env.SALT_API_URL}",
+                    function: 'state.apply',
+                    target: '*',
+                    arguments: 'nginx-jenkins'
+                )
             }
         }
 
         stage('Start nginx') {
             steps {
-                salt authtype: 'basic',
-                     clientInterface: 'local',
-                     credentialsId: 'jenkins',
-                     function: 'service.start',
-                     target: '*',
-                     arguments: 'nginx',
-                     servername: "${env.SALT_API_URL}"
+                saltCommand(
+                    credentialsId: 'git-jenkins-salt',
+                    servername: "${env.SALT_API_URL}",
+                    function: 'service.start',
+                    target: '*',
+                    arguments: 'nginx'
+                )
             }
         }
     }
